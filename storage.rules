@@ -1,0 +1,26 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper function
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Meme uploads folder
+    match /memes/{allPaths=**} {
+      allow read: if true; // Public read for viral video/image streaming
+      allow write: if isAuthenticated()
+        && request.resource.size < 50 * 1024 * 1024 // Max 50MB per file
+        && (request.resource.contentType.matches('image/.*') || request.resource.contentType.matches('video/.*'));
+    }
+
+    // Profile avatars folder
+    match /avatars/{userId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated() && request.auth.uid == userId
+        && request.resource.size < 5 * 1024 * 1024 // Max 5MB per avatar
+        && request.resource.contentType.matches('image/.*');
+    }
+  }
+}
