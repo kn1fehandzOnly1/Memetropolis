@@ -29,7 +29,7 @@ export default function ProfileModal({ isOpen, onClose }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
       <div className="bg-[#121219] border border-slate-800 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl relative max-h-[90vh] flex flex-col">
         {/* Header Cover Banner */}
-        <div className="h-36 bg-gradient-to-r from-cyan-600 via-indigo-600 to-purple-700 relative p-4 flex items-start justify-between">
+        <div className="h-24 bg-gradient-to-r from-cyan-600 via-indigo-600 to-purple-700 relative p-4 flex items-start justify-between">
           <div className="flex items-center space-x-2 bg-black/50 backdrop-blur-md px-3.5 py-1.5 rounded-full text-xs font-extrabold text-white border border-white/20 shadow-md">
             <ShieldCheck size={16} className="text-cyan-400" />
             <span>{user.isPro || user.isProPlus ? 'Ad-Free Member' : 'Standard Member'}</span>
@@ -43,7 +43,7 @@ export default function ProfileModal({ isOpen, onClose }) {
         {/* User Info Bar */}
         <div className="px-6 pb-4 pt-2 relative flex-1 overflow-y-auto">
           {/* Avatar & Badges Header */}
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between -mt-14 mb-5 gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between -mt-12 mb-5 gap-4">
             <div className="flex items-end space-x-4">
               <div className="relative shrink-0">
                 <img 
