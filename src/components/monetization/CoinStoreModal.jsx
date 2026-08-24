@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
 import { X, Coins, CheckCircle, Sparkles, ShieldCheck, Play } from 'lucide-react';
+import { useStore } from '../../hooks/useStore';
 import { COIN_PACKS } from '../../services/monetizationService';
 
-export default function CoinStoreModal({ isOpen, onClose, onBuyCoins, onOpenWatchEarn, userCoins }) {
+export default function CoinStoreModal({ isOpen, onClose }) {
+  const { user, handlers, setActiveModal } = useStore();
   const [selectedPack, setSelectedPack] = useState(COIN_PACKS[1]);
   const [successMsg, setSuccessMsg] = useState('');
 
   if (!isOpen) return null;
 
   const handlePurchase = () => {
-    onBuyCoins(selectedPack.coins);
-    setSuccessMsg(`Successfully added +${selectedPack.coins} Memetropolis Coins to your balance!`);
+    handlers.handleBuyCoins(selectedPack.coins);
+    setSuccessMsg(`Successfully added +${selectedPack.coins} ViralDrop Coins to your balance!`);
     setTimeout(() => {
       setSuccessMsg('');
       onClose();
@@ -27,7 +29,7 @@ export default function CoinStoreModal({ isOpen, onClose, onBuyCoins, onOpenWatc
               <Coins size={24} className="animate-bounce" />
             </div>
             <div>
-              <h3 className="font-black text-xl text-white font-outfit">Memetropolis Coin Store</h3>
+              <h3 className="font-black text-xl text-white font-outfit">ViralDrop Coin Store</h3>
               <p className="text-xs text-slate-400 font-medium">Use coins to award & tip top meme creators!</p>
             </div>
           </div>
@@ -43,7 +45,7 @@ export default function CoinStoreModal({ isOpen, onClose, onBuyCoins, onOpenWatc
             <span className="text-xs font-bold text-slate-300">Your Coin Balance:</span>
             <div className="flex items-center space-x-1.5 font-black text-lg text-amber-400">
               <Coins size={20} />
-              <span>{userCoins} Coins</span>
+              <span>{user.coins} Coins</span>
             </div>
           </div>
 
@@ -57,10 +59,7 @@ export default function CoinStoreModal({ isOpen, onClose, onBuyCoins, onOpenWatc
               </div>
             </div>
             <button
-              onClick={() => {
-                onClose();
-                onOpenWatchEarn();
-              }}
+              onClick={() => setActiveModal('watch-earn')}
               className="bg-purple-600 hover:bg-purple-500 text-white font-extrabold px-3 py-1.5 rounded-xl text-xs shadow-md"
             >
               Watch Ad
@@ -109,7 +108,7 @@ export default function CoinStoreModal({ isOpen, onClose, onBuyCoins, onOpenWatc
               {/* Checkout Security Disclaimer */}
               <div className="flex items-center space-x-2 text-[11px] text-slate-500 justify-center pt-2">
                 <ShieldCheck size={14} className="text-emerald-400" />
-                <span>Instant Google Play In-App Billing / Card Checkout</span>
+                <span>Instant Billing / Card Checkout</span>
               </div>
 
               {/* Buy Button */}

@@ -10,7 +10,7 @@ export const COIN_PACKS = [
 export const PRO_TIERS = {
   PRO: {
     id: 'pro',
-    name: 'MEMETROPOLIS PRO',
+    name: 'VIRALDROP PRO',
     price: '$2.99 / mo',
     color: 'from-amber-400 to-orange-500',
     badge: 'PRO',
@@ -24,12 +24,12 @@ export const PRO_TIERS = {
   },
   PRO_PLUS: {
     id: 'pro_plus',
-    name: 'MEMETROPOLIS PRO+',
+    name: 'VIRALDROP PRO+',
     price: '$5.99 / mo',
     color: 'from-pink-500 via-purple-500 to-indigo-600',
     badge: 'PRO+',
     perks: [
-      'All MEMETROPOLIS PRO Features Included',
+      'All VIRALDROP PRO Features Included',
       'Animated Glowing Profile Avatar Frame',
       '300 Free Monthly Bonus Coins',
       'Pin 1 Comment on your own posts',
@@ -40,15 +40,35 @@ export const PRO_TIERS = {
 
 class MonetizationService {
   constructor() {
-    const savedUser = localStorage.getItem('memetropolis_user');
-    this.user = savedUser ? JSON.parse(savedUser) : INITIAL_USER;
+    this.user = this.loadUser();
+  }
+
+  loadUser() {
+    try {
+      const savedUser = localStorage.getItem('viraldrop_user');
+      if (!savedUser) return INITIAL_USER;
+
+      const parsed = JSON.parse(savedUser);
+      // Basic migration/validation: Ensure required fields exist
+      return {
+        ...INITIAL_USER,
+        ...parsed,
+        // Preserve coins and subscription status
+        coins: typeof parsed.coins === 'number' ? parsed.coins : INITIAL_USER.coins,
+        isPro: !!parsed.isPro,
+        isProPlus: !!parsed.isProPlus
+      };
+    } catch (e) {
+      console.error('Failed to load user from LocalStorage:', e);
+      return INITIAL_USER;
+    }
   }
 
   saveUser() {
     try {
-      localStorage.setItem('memetropolis_user', JSON.stringify(this.user));
+      localStorage.setItem('viraldrop_user', JSON.stringify(this.user));
     } catch (e) {
-      console.warn('LocalStorage error:', e);
+      console.error('LocalStorage write error:', e);
     }
   }
 

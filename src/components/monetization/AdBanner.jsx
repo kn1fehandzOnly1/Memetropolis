@@ -1,9 +1,13 @@
 import React from 'react';
 import { ExternalLink, Sparkles } from 'lucide-react';
+import { useStore } from '../../hooks/useStore';
 import { ADS_DATA } from '../../services/mockData';
 
-export default function AdBanner({ isPro, onOpenProModal, index = 0 }) {
-  if (isPro) return null; // Ads automatically hidden for 9GAG PRO users!
+export default function AdBanner({ index = 0 }) {
+  const { user, setActiveModal } = useStore();
+
+  const isPro = user.isPro || user.isProPlus;
+  if (isPro) return null;
 
   const ad = ADS_DATA[index % ADS_DATA.length];
 
@@ -16,7 +20,7 @@ export default function AdBanner({ isPro, onOpenProModal, index = 0 }) {
           <span>{ad.advertiser}</span>
         </span>
         <button 
-          onClick={onOpenProModal}
+          onClick={() => setActiveModal('pro')}
           className="text-amber-400 hover:text-amber-300 font-extrabold normal-case flex items-center space-x-1"
         >
           <Sparkles size={12} />

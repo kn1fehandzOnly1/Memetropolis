@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { X, Play, Coins, Sparkles, CheckCircle2, ShieldCheck, Timer } from 'lucide-react';
+import { X, Play, Coins, Sparkles, CheckCircle2, Timer } from 'lucide-react';
+import { useStore } from '../../hooks/useStore';
 
 const SAMPLE_REWARDED_ADS = [
   {
     id: 'rad_1',
     title: 'Discover CyberQuest 2077 - Next-Gen Sci-Fi Action RPG',
     advertiser: 'CyberQuest Studios',
-    duration: 10, // seconds
+    duration: 10,
     coinsReward: 50,
     videoUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=1000&q=80',
     description: 'Play free today on Android & iOS!'
@@ -31,7 +32,8 @@ const SAMPLE_REWARDED_ADS = [
   }
 ];
 
-export default function WatchEarnModal({ isOpen, onClose, onRewardEarned, userCoins }) {
+export default function WatchEarnModal({ isOpen, onClose }) {
+  const { handlers } = useStore();
   const [activeAdIndex, setActiveAdIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [timeLeft, setTimeLeft] = useState(10);
@@ -50,11 +52,11 @@ export default function WatchEarnModal({ isOpen, onClose, onRewardEarned, userCo
     } else if (isPlaying && timeLeft === 0) {
       setIsPlaying(false);
       setCompleted(true);
-      onRewardEarned(currentAd.coinsReward);
+      handlers.handleRewardEarned(currentAd.coinsReward);
       setAdsWatchedToday((prev) => prev + 1);
     }
     return () => clearInterval(timer);
-  }, [isPlaying, timeLeft]);
+  }, [isPlaying, timeLeft, handlers, currentAd.coinsReward]);
 
   if (!isOpen) return null;
 
@@ -79,7 +81,6 @@ export default function WatchEarnModal({ isOpen, onClose, onRewardEarned, userCo
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
       <div className="bg-[#121219] border border-amber-500/40 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl relative">
-        {/* Header */}
         <div className="p-4 bg-gradient-to-r from-amber-500/20 via-orange-600/20 to-purple-600/20 border-b border-slate-800 flex items-center justify-between">
           <div className="flex items-center space-x-2.5">
             <div className="w-9 h-9 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
@@ -97,9 +98,7 @@ export default function WatchEarnModal({ isOpen, onClose, onRewardEarned, userCo
           )}
         </div>
 
-        {/* Content Body */}
         <div className="p-5 space-y-4">
-          {/* Ad Container Player */}
           <div className="relative rounded-2xl overflow-hidden bg-black border border-slate-800 aspect-video flex items-center justify-center group">
             <img 
               src={currentAd.videoUrl} 
@@ -107,7 +106,6 @@ export default function WatchEarnModal({ isOpen, onClose, onRewardEarned, userCo
               className={`w-full h-full object-cover transition-opacity duration-300 ${isPlaying ? 'opacity-90 scale-105' : 'opacity-60'}`}
             />
 
-            {/* Play Overlay Before Start */}
             {!isPlaying && !completed && (
               <div className="absolute inset-0 bg-black/50 backdrop-blur-xs flex flex-col items-center justify-center p-4 text-center space-y-3">
                 <div className="w-14 h-14 rounded-full bg-amber-500 text-black flex items-center justify-center shadow-xl hover:scale-110 transition-transform cursor-pointer" onClick={handleStartWatch}>
@@ -123,7 +121,6 @@ export default function WatchEarnModal({ isOpen, onClose, onRewardEarned, userCo
               </div>
             )}
 
-            {/* Playing State HUD */}
             {isPlaying && (
               <div className="absolute inset-0 flex flex-col justify-between p-3 bg-gradient-to-t from-black/80 via-transparent to-black/60">
                 <div className="flex items-center justify-between text-xs font-extrabold text-white">
@@ -134,7 +131,6 @@ export default function WatchEarnModal({ isOpen, onClose, onRewardEarned, userCo
                   </div>
                 </div>
 
-                {/* Progress Bar */}
                 <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden border border-slate-700">
                   <div 
                     className="bg-gradient-to-r from-amber-400 to-orange-500 h-full transition-all duration-1000 ease-linear"
@@ -144,7 +140,6 @@ export default function WatchEarnModal({ isOpen, onClose, onRewardEarned, userCo
               </div>
             )}
 
-            {/* Completed Reward View */}
             {completed && (
               <div className="absolute inset-0 bg-black/90 backdrop-blur-sm flex flex-col items-center justify-center p-4 text-center space-y-2 animate-in zoom-in-95">
                 <div className="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
@@ -153,13 +148,12 @@ export default function WatchEarnModal({ isOpen, onClose, onRewardEarned, userCo
                 <h4 className="font-black text-lg text-white">Reward Earned!</h4>
                 <p className="text-xs font-bold text-amber-400 flex items-center justify-center space-x-1">
                   <Coins size={16} />
-                  <span>+{currentAd.coinsReward} Memetropolis Coins Added!</span>
+                  <span>+{currentAd.coinsReward} ViralDrop Coins Added!</span>
                 </p>
               </div>
             )}
           </div>
 
-          {/* Ad Info Details */}
           <div className="bg-[#171722] p-3.5 rounded-2xl border border-slate-800 flex items-center justify-between text-xs">
             <div>
               <span className="text-[10px] uppercase font-black tracking-wider text-slate-500">Sponsor</span>
@@ -175,7 +169,6 @@ export default function WatchEarnModal({ isOpen, onClose, onRewardEarned, userCo
             </div>
           </div>
 
-          {/* Action Buttons */}
           <div className="pt-2">
             {!isPlaying && !completed && (
               <button

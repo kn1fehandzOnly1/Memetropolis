@@ -5,7 +5,6 @@ import {
   MessageSquare, 
   Share2, 
   Gift, 
-  Crown, 
   ExternalLink,
   Check,
   Bookmark,
@@ -13,16 +12,15 @@ import {
   UserCheck
 } from 'lucide-react';
 import CommentSection from './CommentSection';
+import { useStore } from '../hooks/useStore';
 
-export default function MemeCard({ 
-  post, 
-  onVote, 
-  onOpenTipModal, 
-  user,
-  onAddComment,
-  onToggleSubscribe,
-  isSubscribed
-}) {
+export default function MemeCard({ post }) {
+  const {
+    user,
+    handlers,
+    setTipModalPost
+  } = useStore();
+
   const [showComments, setShowComments] = useState(false);
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -34,6 +32,7 @@ export default function MemeCard({
   };
 
   const isSelf = post.author.username === user.username;
+  const isSubscribed = (user.following || []).includes(post.author.username);
 
   return (
     <article className={`rounded-2xl bg-[#14141a] border ${post.isSponsored ? 'border-amber-500/40 shadow-amber-500/5' : 'border-slate-800/80'} overflow-hidden shadow-xl hover:border-slate-700/80 transition-all mb-5 group`}>
@@ -73,10 +72,9 @@ export default function MemeCard({
                 </span>
               )}
 
-              {/* Subscribe Button */}
               {!isSelf && !post.isSponsored && (
                 <button
-                  onClick={() => onToggleSubscribe(post.author.username)}
+                  onClick={() => handlers.handleToggleSubscribe(post.author.username)}
                   className={`flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold transition-all ml-1 ${
                     isSubscribed
                       ? 'bg-slate-800 text-slate-300 hover:bg-rose-500/20 hover:text-rose-400'
@@ -112,8 +110,7 @@ export default function MemeCard({
           </div>
         </div>
 
-        {/* Save Bookmark */}
-        <button 
+        <button
           onClick={() => setSaved(!saved)}
           className={`p-2 rounded-xl transition-colors ${saved ? 'text-cyan-400 bg-cyan-500/10' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'}`}
         >
@@ -121,7 +118,6 @@ export default function MemeCard({
         </button>
       </div>
 
-      {/* Post Title & Tags */}
       <div className="px-4 py-3">
         <h2 className="font-extrabold text-base sm:text-lg text-white leading-snug tracking-tight mb-2">
           {post.title}
@@ -138,7 +134,6 @@ export default function MemeCard({
         )}
       </div>
 
-      {/* Media Renderer */}
       <div className="relative bg-black flex items-center justify-center overflow-hidden max-h-[600px]">
         {post.type === 'video' ? (
           <video 
@@ -158,7 +153,6 @@ export default function MemeCard({
           />
         )}
 
-        {/* Sponsored CTA Overlay */}
         {post.isSponsored && (
           <a
             href={post.sponsorUrl}
@@ -172,7 +166,6 @@ export default function MemeCard({
         )}
       </div>
 
-      {/* Awards Badges Bar */}
       {post.awards && post.awards.length > 0 && (
         <div className="px-4 py-2 bg-[#101015] border-t border-slate-800/40 flex items-center space-x-3 overflow-x-auto">
           <span className="text-[11px] font-bold text-slate-500 shrink-0">Awards:</span>
@@ -190,12 +183,10 @@ export default function MemeCard({
         </div>
       )}
 
-      {/* Engagement & Monetization Controls Bar */}
       <div className="p-3 bg-[#111116] border-t border-slate-800/60 flex items-center justify-between">
-        {/* Voting Group */}
         <div className="flex items-center space-x-1 bg-slate-900/90 rounded-full p-1 border border-slate-800">
           <button
-            onClick={() => onVote(post.id, 1)}
+            onClick={() => handlers.handleVote(post.id, 1)}
             className={`flex items-center space-x-1 px-3 py-1.5 rounded-full font-black text-xs transition-all ${
               post.userVote === 1
                 ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20'
@@ -209,7 +200,7 @@ export default function MemeCard({
           <div className="w-[1px] h-4 bg-slate-800" />
 
           <button
-            onClick={() => onVote(post.id, -1)}
+            onClick={() => handlers.handleVote(post.id, -1)}
             className={`p-1.5 rounded-full font-black text-xs transition-all ${
               post.userVote === -1
                 ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
@@ -220,19 +211,15 @@ export default function MemeCard({
           </button>
         </div>
 
-        {/* Action Buttons: Tip Award, Comments, Share */}
         <div className="flex items-center space-x-2">
-          {/* Tip / Award Creator Button */}
           <button
-            onClick={() => onOpenTipModal(post)}
+            onClick={() => setTipModalPost(post)}
             className="flex items-center space-x-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 px-3 py-1.5 rounded-full font-bold text-xs transition-all hover:scale-105"
-            title="Tip Creator with Awards"
           >
             <Gift size={16} className="text-amber-400 animate-pulse" />
             <span className="hidden sm:inline">Tip</span>
           </button>
 
-          {/* Comments Toggle */}
           <button
             onClick={() => setShowComments(!showComments)}
             className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full font-bold text-xs transition-all ${
@@ -245,25 +232,17 @@ export default function MemeCard({
             <span>{post.commentCount}</span>
           </button>
 
-          {/* Share Link */}
           <button
             onClick={handleShare}
             className="p-2 rounded-full text-slate-400 hover:text-white bg-slate-900 border border-slate-800 hover:bg-slate-800 transition-all"
-            title="Share Meme"
           >
             {copied ? <Check size={16} className="text-emerald-400" /> : <Share2 size={16} />}
           </button>
         </div>
       </div>
 
-      {/* Expanded Comment Thread */}
       {showComments && (
-        <CommentSection
-          postId={post.id}
-          comments={post.comments || []}
-          user={user}
-          onAddComment={(text) => onAddComment(post.id, text)}
-        />
+        <CommentSection postId={post.id} comments={post.comments || []} />
       )}
     </article>
   );

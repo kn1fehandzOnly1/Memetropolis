@@ -11,11 +11,10 @@ import {
   Skull, 
   Crown,
   Play,
-  Coins,
-  Smartphone,
-  ShieldCheck,
-  Zap
+  Coins
 } from 'lucide-react';
+import { useStore } from '../hooks/useStore';
+import { CATEGORIES } from '../services/mockData';
 
 const ICON_MAP = {
   Flame,
@@ -29,23 +28,24 @@ const ICON_MAP = {
   Skull
 };
 
-export default function Sidebar({ 
-  categories, 
-  activeCategory, 
-  setActiveCategory, 
-  onOpenProModal, 
-  onOpenWatchEarn,
-  isPro 
-}) {
+export default function Sidebar() {
+  const {
+    activeCategory,
+    setActiveCategory,
+    setActiveModal,
+    user
+  } = useStore();
+
+  const isPro = user.isPro || user.isProPlus;
+
   return (
     <aside className="w-64 hidden md:block shrink-0 sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto pr-3 py-4 space-y-6">
-      {/* Category List Section */}
       <div className="space-y-1">
         <div className="px-3 text-xs font-black uppercase tracking-wider text-slate-500 mb-2">
           Feeds & Categories
         </div>
 
-        {categories.map((cat) => {
+        {CATEGORIES.map((cat) => {
           const IconComp = ICON_MAP[cat.icon] || Flame;
           const isActive = activeCategory === cat.id;
 
@@ -69,7 +69,6 @@ export default function Sidebar({
         })}
       </div>
 
-      {/* Rewarded Ads Watch & Earn Widget */}
       <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-900/40 via-[#181824] to-indigo-900/40 border border-purple-500/30 shadow-lg relative overflow-hidden group">
         <div className="flex items-center space-x-1.5 text-purple-300 text-xs font-black mb-1">
           <Play size={14} className="fill-current text-pink-400" />
@@ -82,7 +81,7 @@ export default function Sidebar({
         </p>
 
         <button
-          onClick={onOpenWatchEarn}
+          onClick={() => setActiveModal('watch-earn')}
           className="w-full bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white font-black py-2 rounded-xl text-xs transition-transform hover:scale-105 shadow-md flex items-center justify-center space-x-1.5"
         >
           <Coins size={14} className="text-amber-400" />
@@ -90,7 +89,6 @@ export default function Sidebar({
         </button>
       </div>
 
-      {/* PRO Subscription Widget */}
       {!isPro && (
         <div className="p-4 rounded-2xl bg-gradient-to-br from-[#181824] to-[#12121a] border border-amber-500/20 shadow-lg relative overflow-hidden group">
           <div className="absolute top-0 right-0 transform translate-x-2 -translate-y-2 opacity-10 group-hover:opacity-20 transition-opacity">
@@ -99,7 +97,7 @@ export default function Sidebar({
 
           <div className="flex items-center space-x-2 text-amber-400 text-xs font-black mb-1">
             <Crown size={14} />
-            <span>MEMETROPOLIS PRO</span>
+            <span>VIRALDROP PRO</span>
           </div>
 
           <h4 className="font-black text-sm text-white mb-1">Go Ad-Free Today</h4>
@@ -108,7 +106,7 @@ export default function Sidebar({
           </p>
 
           <button
-            onClick={onOpenProModal}
+            onClick={() => setActiveModal('pro')}
             className="w-full bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-black font-black py-2 rounded-xl text-xs transition-transform hover:scale-105 shadow-md"
           >
             Upgrade for $2.99/mo
@@ -116,9 +114,8 @@ export default function Sidebar({
         </div>
       )}
 
-      {/* Footer Info */}
       <div className="px-3 text-[11px] text-slate-600 space-y-1">
-        <p>© 2026 Memetropolis Inc. • Go Fun The World</p>
+        <p>© 2026 ViralDrop Inc. • Daily Viral Content</p>
         <div className="flex space-x-2 text-slate-500">
           <a href="#" className="hover:underline">Privacy</a>
           <span>•</span>

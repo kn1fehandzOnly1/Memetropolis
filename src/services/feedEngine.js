@@ -2,15 +2,28 @@ import { INITIAL_POSTS, CATEGORIES } from './mockData';
 
 class FeedEngine {
   constructor() {
-    const savedPosts = localStorage.getItem('memetropolis_posts');
-    this.posts = savedPosts ? JSON.parse(savedPosts) : INITIAL_POSTS;
+    this.posts = this.loadPosts();
+  }
+
+  loadPosts() {
+    try {
+      const savedPosts = localStorage.getItem('viraldrop_posts');
+      if (!savedPosts) return INITIAL_POSTS;
+
+      const parsed = JSON.parse(savedPosts);
+      // Filter out invalid posts
+      return Array.isArray(parsed) ? parsed : INITIAL_POSTS;
+    } catch (e) {
+      console.error('Failed to load posts from LocalStorage:', e);
+      return INITIAL_POSTS;
+    }
   }
 
   saveToStorage() {
     try {
-      localStorage.setItem('memetropolis_posts', JSON.stringify(this.posts));
+      localStorage.setItem('viraldrop_posts', JSON.stringify(this.posts));
     } catch (e) {
-      console.warn('LocalStorage error:', e);
+      console.error('LocalStorage write error:', e);
     }
   }
 

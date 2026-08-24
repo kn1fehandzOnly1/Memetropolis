@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
-import { Send, ThumbsUp, CornerDownRight, Crown } from 'lucide-react';
+import { Send, ThumbsUp, CornerDownRight } from 'lucide-react';
+import { useStore } from '../hooks/useStore';
 
-export default function CommentSection({ postId, comments, user, onAddComment }) {
+export default function CommentSection({ postId, comments }) {
+  const { user, handlers } = useStore();
   const [inputText, setInputText] = useState('');
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!inputText.trim()) return;
-    onAddComment(inputText);
+    handlers.handleAddComment(postId, inputText);
     setInputText('');
   };
 
@@ -77,7 +79,6 @@ export default function CommentSection({ postId, comments, user, onAddComment })
                 </div>
               </div>
 
-              {/* Nested Replies */}
               {comment.replies && comment.replies.length > 0 && (
                 <div className="pl-6 space-y-2">
                   {comment.replies.map((reply) => (

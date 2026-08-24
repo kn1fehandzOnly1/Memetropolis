@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import MemeCard from './components/MemeCard';
@@ -11,133 +11,42 @@ import ProfileModal from './components/ProfileModal';
 import AdBanner from './components/monetization/AdBanner';
 
 import { CATEGORIES } from './services/mockData';
-import { feedEngine } from './services/feedEngine';
-import { monetizationService } from './services/monetizationService';
+import { StoreProvider } from './context/StoreContext';
+import { useStore } from './hooks/useStore';
 
 import { 
-  Flame, 
-  Sparkles, 
-  TrendingUp, 
-  Smartphone, 
-  Crown, 
+  Crown,
   Coins, 
   PlusCircle, 
   Home, 
-  Compass,
   User,
   AlertCircle
 } from 'lucide-react';
 
-export default function App() {
-  const [user, setUser] = useState(() => monetizationService.getUser());
-  const [activeCategory, setActiveCategory] = useState('hot');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [posts, setPosts] = useState(() => feedEngine.getPosts(activeCategory, searchQuery));
-
-  // Modals state
-  const [isUploadOpen, setIsUploadOpen] = useState(false);
-  const [isCoinStoreOpen, setIsCoinStoreOpen] = useState(false);
-  const [isProModalOpen, setIsProModalOpen] = useState(false);
-  const [isWatchEarnOpen, setIsWatchEarnOpen] = useState(false);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [tipModalPost, setTipModalPost] = useState(null);
-
-  // Toast notifications state
-  const [toast, setToast] = useState('');
-
-  const showToast = (msg) => {
-    setToast(msg);
-    setTimeout(() => setToast(''), 3000);
-  };
-
-  // Re-fetch posts when category or search query changes
-  useEffect(() => {
-    setPosts(feedEngine.getPosts(activeCategory, searchQuery));
-  }, [activeCategory, searchQuery]);
-
-  // Handlers
-  const handleVote = (postId, direction) => {
-    const updated = feedEngine.votePost(postId, direction);
-    setPosts(feedEngine.getPosts(activeCategory, searchQuery));
-  };
-
-  const handleAddComment = (postId, commentText) => {
-    feedEngine.addComment(postId, commentText, user);
-    setPosts(feedEngine.getPosts(activeCategory, searchQuery));
-    showToast('Comment posted!');
-  };
-
-  const handleUploadMeme = (newPostData) => {
-    const created = feedEngine.createPost(newPostData, user);
-    setPosts(feedEngine.getPosts(activeCategory, searchQuery));
-    showToast('🚀 Your meme has been published to Fresh!');
-  };
-
-  const handleToggleSubscribe = (creatorUsername) => {
-    const subscribedNow = monetizationService.toggleSubscribe(creatorUsername);
-    setUser({ ...monetizationService.getUser() });
-    showToast(subscribedNow ? `Subscribed to @${creatorUsername}!` : `Unsubscribed from @${creatorUsername}`);
-  };
-
-  const handleBuyCoins = (amount) => {
-    const updatedUser = monetizationService.addCoins(amount);
-    setUser({ ...updatedUser });
-    showToast(`+${amount} Coins added to your account!`);
-  };
-
-  const handleRewardEarned = (coinsReward) => {
-    const updatedUser = monetizationService.addCoins(coinsReward);
-    setUser({ ...updatedUser });
-    showToast(`🎉 +${coinsReward} Free Coins Earned from Sponsor Ad!`);
-  };
-
-  const handleUpgradePro = (tier) => {
-    const updatedUser = monetizationService.upgradePro(tier);
-    setUser({ ...updatedUser });
-    showToast(`Welcome to MEMETROPOLIS ${tier === 'PRO_PLUS' ? 'PRO+' : 'PRO'}! Ads removed.`);
-  };
-
-  const handleSendAward = (postId, award) => {
-    const ok = monetizationService.spendCoins(award.cost);
-    if (!ok) return false;
-
-    setUser({ ...monetizationService.getUser() });
-    feedEngine.addAwardToPost(postId, award);
-    setPosts(feedEngine.getPosts(activeCategory, searchQuery));
-    showToast(`Awarded ${award.icon} ${award.name}!`);
-    return true;
-  };
-
-  const shouldShowAds = monetizationService.shouldShowAds();
+function AppContent() {
+  const {
+    user,
+    activeCategory,
+    setActiveCategory,
+    posts,
+    activeModal,
+    setActiveModal,
+    tipModalPost,
+    setTipModalPost,
+    toast,
+    shouldShowAds,
+    handlers
+  } = useStore();
 
   return (
     <div className="min-h-screen bg-[#0b0b0e] text-slate-100 flex flex-col font-sans">
       {/* Top Navbar */}
-      <Navbar
-        user={user}
-        onOpenUpload={() => setIsUploadOpen(true)}
-        onOpenCoinStore={() => setIsCoinStoreOpen(true)}
-        onOpenWatchEarn={() => setIsWatchEarnOpen(true)}
-        onOpenProModal={() => setIsProModalOpen(true)}
-        onOpenProfile={() => setIsProfileOpen(true)}
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        activeCategory={activeCategory}
-        setActiveCategory={setActiveCategory}
-        categories={CATEGORIES}
-      />
+      <Navbar />
 
       {/* Main Container */}
       <div className="flex-1 max-w-6xl w-full mx-auto px-2 sm:px-4 flex gap-6 pt-4 pb-20 md:pb-8">
         {/* Left Sidebar */}
-        <Sidebar
-          categories={CATEGORIES}
-          activeCategory={activeCategory}
-          setActiveCategory={setActiveCategory}
-          onOpenProModal={() => setIsProModalOpen(true)}
-          onOpenWatchEarn={() => setIsWatchEarnOpen(true)}
-          isPro={user.isPro || user.isProPlus}
-        />
+        <Sidebar />
 
         {/* Center Main Meme Feed */}
         <main className="flex-1 max-w-2xl mx-auto w-full min-w-0">
@@ -152,10 +61,9 @@ export default function App() {
               </span>
             </div>
 
-            {/* Quick Sort / PRO badge hint */}
             {shouldShowAds && (
               <button
-                onClick={() => setIsProModalOpen(true)}
+                onClick={() => setActiveModal('pro')}
                 className="text-xs font-bold text-amber-400 hover:underline flex items-center space-x-1"
               >
                 <Crown size={14} />
@@ -173,7 +81,7 @@ export default function App() {
                 Try searching for something else or be the first to upload a meme in this category!
               </p>
               <button
-                onClick={() => setIsUploadOpen(true)}
+                onClick={() => setActiveModal('upload')}
                 className="bg-cyan-500 hover:bg-cyan-400 text-black font-extrabold px-4 py-2 rounded-xl text-xs"
               >
                 Post a Meme Now
@@ -183,24 +91,11 @@ export default function App() {
             <div>
               {posts.map((post, index) => (
                 <React.Fragment key={post.id}>
-                  {/* Meme Card */}
-                  <MemeCard
-                    post={post}
-                    onVote={handleVote}
-                    onOpenTipModal={(p) => setTipModalPost(p)}
-                    user={user}
-                    onAddComment={handleAddComment}
-                    onToggleSubscribe={handleToggleSubscribe}
-                    isSubscribed={monetizationService.isSubscribed(post.author.username)}
-                  />
+                  <MemeCard post={post} />
 
-                  {/* Periodically inject native In-Feed Ad Banner every 2 posts if user is not PRO */}
-                  {shouldShowAds && (index + 1) % 2 === 0 && (
-                    <AdBanner
-                      isPro={user.isPro || user.isProPlus}
-                      onOpenProModal={() => setIsProModalOpen(true)}
-                      index={Math.floor(index / 2)}
-                    />
+                  {/* Periodically inject native In-Feed Ad Banner every 2 posts */}
+                  {(index + 1) % 2 === 0 && (
+                    <AdBanner index={Math.floor(index / 2)} />
                   )}
                 </React.Fragment>
               ))}
@@ -208,9 +103,8 @@ export default function App() {
           )}
         </main>
 
-        {/* Right Supplemental Sidebar (Monetization & Widgets) */}
+        {/* Right Supplemental Sidebar */}
         <aside className="w-72 hidden lg:block shrink-0 sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto space-y-5 py-2">
-          {/* Top Tippers Leaderboard */}
           <div className="p-4 rounded-2xl bg-[#14141c] border border-slate-800 space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="font-extrabold text-xs uppercase tracking-wider text-slate-400 flex items-center space-x-1.5">
@@ -245,7 +139,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* Secondary Ad Banner Widget */}
           {shouldShowAds && (
             <div className="p-4 rounded-2xl bg-[#14141c] border border-slate-800 text-center space-y-2">
               <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest">PROMO SLOT</div>
@@ -254,7 +147,7 @@ export default function App() {
                 alt="Ad" 
                 className="w-full h-32 object-cover rounded-xl"
               />
-              <h4 className="font-black text-xs text-white">Join Memetropolis Discord</h4>
+              <h4 className="font-black text-xs text-white">Join ViralDrop Discord</h4>
               <button 
                 onClick={() => window.open('https://google.com', '_blank')}
                 className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold py-2 rounded-xl text-xs"
@@ -279,39 +172,44 @@ export default function App() {
         </button>
 
         <button
-          onClick={() => setIsProfileOpen(true)}
-          className="flex flex-col items-center space-y-0.5 text-xs font-bold text-slate-400"
+          onClick={() => setActiveModal('profile')}
+          className={`flex flex-col items-center space-y-0.5 text-xs font-bold ${
+            activeModal === 'profile' ? 'text-cyan-400' : 'text-slate-400'
+          }`}
         >
           <User size={20} />
           <span>Profile</span>
         </button>
 
-        {/* Central Plus Upload Button */}
         <button
-          onClick={() => setIsUploadOpen(true)}
+          onClick={() => setActiveModal('upload')}
           className="bg-cyan-500 text-black p-2.5 rounded-full shadow-lg shadow-cyan-500/30 transform -translate-y-2 hover:scale-110 transition-transform"
         >
           <PlusCircle size={22} />
         </button>
 
         <button
-          onClick={() => setIsCoinStoreOpen(true)}
-          className="flex flex-col items-center space-y-0.5 text-xs font-bold text-amber-400"
+          onClick={() => setActiveModal('coins')}
+          className={`flex flex-col items-center space-y-0.5 text-xs font-bold ${
+            activeModal === 'coins' ? 'text-amber-400' : 'text-slate-400'
+          }`}
         >
           <Coins size={20} />
           <span>Coins</span>
         </button>
 
         <button
-          onClick={() => setIsProModalOpen(true)}
-          className="flex flex-col items-center space-y-0.5 text-xs font-bold text-amber-400"
+          onClick={() => setActiveModal('pro')}
+          className={`flex flex-col items-center space-y-0.5 text-xs font-bold ${
+            activeModal === 'pro' ? 'text-amber-400' : 'text-slate-400'
+          }`}
         >
           <Crown size={20} />
           <span>PRO</span>
         </button>
       </nav>
 
-      {/* Floating Toast Notification */}
+      {/* Toast Notification */}
       {toast && (
         <div className="fixed top-16 right-4 z-50 bg-cyan-500 text-black font-extrabold px-4 py-2.5 rounded-2xl shadow-2xl text-xs animate-in slide-in-from-right duration-200">
           {toast}
@@ -320,62 +218,42 @@ export default function App() {
 
       {/* Modals */}
       <UploadModal
-        isOpen={isUploadOpen}
-        onClose={() => setIsUploadOpen(false)}
-        onUpload={handleUploadMeme}
-        categories={CATEGORIES}
+        isOpen={activeModal === 'upload'}
+        onClose={() => setActiveModal(null)}
       />
 
       <CoinStoreModal
-        isOpen={isCoinStoreOpen}
-        onClose={() => setIsCoinStoreOpen(false)}
-        onBuyCoins={handleBuyCoins}
-        onOpenWatchEarn={() => setIsWatchEarnOpen(true)}
-        userCoins={user.coins}
+        isOpen={activeModal === 'coins'}
+        onClose={() => setActiveModal(null)}
       />
 
       <ProUpgradeModal
-        isOpen={isProModalOpen}
-        onClose={() => setIsProModalOpen(false)}
-        onUpgrade={handleUpgradePro}
-        currentProTier={user.isProPlus ? 'PRO_PLUS' : user.isPro ? 'PRO' : null}
+        isOpen={activeModal === 'pro'}
+        onClose={() => setActiveModal(null)}
       />
 
       <TipAwardModal
         isOpen={!!tipModalPost}
         onClose={() => setTipModalPost(null)}
-        post={tipModalPost}
-        userCoins={user.coins}
-        onSendAward={handleSendAward}
-        onOpenCoinStore={() => setIsCoinStoreOpen(true)}
       />
 
       <WatchEarnModal
-        isOpen={isWatchEarnOpen}
-        onClose={() => setIsWatchEarnOpen(false)}
-        onRewardEarned={handleRewardEarned}
-        userCoins={user.coins}
+        isOpen={activeModal === 'watch-earn'}
+        onClose={() => setActiveModal(null)}
       />
 
       <ProfileModal
-        isOpen={isProfileOpen}
-        onClose={() => setIsProfileOpen(false)}
-        user={user}
-        posts={posts}
-        followingList={user.following || []}
-        onOpenProModal={() => {
-          setIsProfileOpen(false);
-          setIsProModalOpen(true);
-        }}
-        onOpenCoinStore={() => {
-          setIsProfileOpen(false);
-          setIsCoinStoreOpen(true);
-        }}
-        onOpenWatchEarn={() => {
-          setIsProfileOpen(false);
-          setIsWatchEarnOpen(true);
-        }}
+        isOpen={activeModal === 'profile'}
+        onClose={() => setActiveModal(null)}
       />
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <StoreProvider>
+      <AppContent />
+    </StoreProvider>
   );
 }

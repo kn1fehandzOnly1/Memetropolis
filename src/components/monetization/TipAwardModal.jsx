@@ -1,25 +1,20 @@
 import React, { useState } from 'react';
 import { X, Gift, Coins, Sparkles, AlertCircle, CheckCircle } from 'lucide-react';
+import { useStore } from '../../hooks/useStore';
 import { AWARDS_LIST } from '../../services/mockData';
 
-export default function TipAwardModal({ 
-  isOpen, 
-  onClose, 
-  post, 
-  userCoins, 
-  onSendAward, 
-  onOpenCoinStore 
-}) {
+export default function TipAwardModal({ isOpen, onClose }) {
+  const { user, handlers, setActiveModal, tipModalPost } = useStore();
   const [selectedAward, setSelectedAward] = useState(AWARDS_LIST[0]);
   const [success, setSuccess] = useState(false);
 
-  if (!isOpen || !post) return null;
+  if (!isOpen || !tipModalPost) return null;
 
-  const hasEnoughCoins = userCoins >= selectedAward.cost;
+  const hasEnoughCoins = user.coins >= selectedAward.cost;
 
   const handleSend = () => {
     if (!hasEnoughCoins) return;
-    const ok = onSendAward(post.id, selectedAward);
+    const ok = handlers.handleSendAward(tipModalPost.id, selectedAward);
     if (ok) {
       setSuccess(true);
       setTimeout(() => {
@@ -32,7 +27,6 @@ export default function TipAwardModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-[#14141c] border border-amber-500/30 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl relative">
-        {/* Header */}
         <div className="p-4 bg-gradient-to-r from-amber-500/20 via-slate-900 to-amber-500/20 border-b border-slate-800 flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
@@ -40,7 +34,7 @@ export default function TipAwardModal({
             </div>
             <div>
               <h3 className="font-extrabold text-base text-white font-outfit">Award Creator</h3>
-              <p className="text-[11px] text-slate-400">Supporting @{post.author.username}</p>
+              <p className="text-[11px] text-slate-400">Supporting @{tipModalPost.author.username}</p>
             </div>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-white p-1 rounded-lg">
@@ -48,7 +42,6 @@ export default function TipAwardModal({
           </button>
         </div>
 
-        {/* Body */}
         <div className="p-5 space-y-4">
           {success ? (
             <div className="py-6 text-center space-y-2 animate-in zoom-in-95">
@@ -57,21 +50,19 @@ export default function TipAwardModal({
               </div>
               <h4 className="font-extrabold text-lg text-white">Award Sent!</h4>
               <p className="text-xs text-slate-300">
-                You awarded {selectedAward.icon} {selectedAward.name} to @{post.author.username}!
+                You awarded {selectedAward.icon} {selectedAward.name} to @{tipModalPost.author.username}!
               </p>
             </div>
           ) : (
             <>
-              {/* Wallet Info */}
               <div className="flex items-center justify-between p-3 rounded-xl bg-[#1b1b26] border border-slate-800 text-xs">
                 <span className="text-slate-400 font-semibold">Your Balance:</span>
                 <div className="flex items-center space-x-1 font-black text-amber-400">
                   <Coins size={16} />
-                  <span>{userCoins} Coins</span>
+                  <span>{user.coins} Coins</span>
                 </div>
               </div>
 
-              {/* Award Selector Grid */}
               <div className="grid grid-cols-2 gap-2.5">
                 {AWARDS_LIST.map((award) => {
                   const isSelected = selectedAward.id === award.id;
@@ -96,12 +87,10 @@ export default function TipAwardModal({
                 })}
               </div>
 
-              {/* Description */}
               <p className="text-xs text-slate-400 italic bg-[#101016] p-3 rounded-xl border border-slate-800/60">
                 "{selectedAward.description}"
               </p>
 
-              {/* Action Buttons */}
               {hasEnoughCoins ? (
                 <button
                   onClick={handleSend}
@@ -114,13 +103,10 @@ export default function TipAwardModal({
                 <div className="space-y-2">
                   <div className="flex items-center space-x-1.5 text-xs text-rose-400 font-semibold justify-center">
                     <AlertCircle size={14} />
-                    <span>You need {selectedAward.cost - userCoins} more coins for this award.</span>
+                    <span>You need {selectedAward.cost - user.coins} more coins for this award.</span>
                   </div>
                   <button
-                    onClick={() => {
-                      onClose();
-                      onOpenCoinStore();
-                    }}
+                    onClick={() => setActiveModal('coins')}
                     className="w-full bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 border border-amber-500/40 font-extrabold py-2.5 rounded-xl text-xs flex items-center justify-center space-x-1.5"
                   >
                     <Coins size={16} />

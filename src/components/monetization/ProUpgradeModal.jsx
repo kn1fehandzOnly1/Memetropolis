@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
-import { X, Crown, Check, Sparkles, Zap, Star } from 'lucide-react';
+import { X, Crown, Check, Sparkles } from 'lucide-react';
+import { useStore } from '../../hooks/useStore';
 import { PRO_TIERS } from '../../services/monetizationService';
 
-export default function ProUpgradeModal({ isOpen, onClose, onUpgrade, currentProTier }) {
+export default function ProUpgradeModal({ isOpen, onClose }) {
+  const { handlers } = useStore();
   const [selectedTier, setSelectedTier] = useState('PRO');
   const [success, setSuccess] = useState(false);
 
   if (!isOpen) return null;
 
   const handleUpgrade = () => {
-    onUpgrade(selectedTier);
+    handlers.handleUpgradePro(selectedTier);
     setSuccess(true);
     setTimeout(() => {
       setSuccess(false);
@@ -20,7 +22,6 @@ export default function ProUpgradeModal({ isOpen, onClose, onUpgrade, currentPro
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
       <div className="bg-[#121219] border border-amber-500/30 rounded-3xl w-full max-w-xl overflow-hidden shadow-2xl relative">
-        {/* Glowing Header */}
         <div className="p-6 bg-gradient-to-r from-amber-500/20 via-orange-600/20 to-purple-600/20 border-b border-slate-800 text-center relative">
           <button 
             onClick={onClose} 
@@ -34,14 +35,13 @@ export default function ProUpgradeModal({ isOpen, onClose, onUpgrade, currentPro
           </div>
 
           <h2 className="font-black text-2xl text-white font-outfit tracking-wide">
-            Upgrade to MEMETROPOLIS PRO
+            Upgrade to VIRALDROP PRO
           </h2>
           <p className="text-xs text-slate-300 font-medium max-w-md mx-auto mt-1">
             Unlock the ultimate ad-free experience, exclusive profile badges, and monthly coin rewards!
           </p>
         </div>
 
-        {/* Modal Body */}
         <div className="p-6 space-y-5">
           {success ? (
             <div className="p-6 text-center space-y-2 animate-in zoom-in-95">
@@ -50,14 +50,12 @@ export default function ProUpgradeModal({ isOpen, onClose, onUpgrade, currentPro
               </div>
               <h3 className="font-black text-lg text-white">Upgrade Successful!</h3>
               <p className="text-xs text-slate-400">
-                You are now a MEMETROPOLIS {selectedTier === 'PRO_PLUS' ? 'PRO+' : 'PRO'} Member! Ads are removed.
+                You are now a Member! Ads are removed.
               </p>
             </div>
           ) : (
             <>
-              {/* Tier Selection Selector */}
               <div className="grid grid-cols-2 gap-3">
-                {/* PRO Plan */}
                 <div
                   onClick={() => setSelectedTier('PRO')}
                   className={`p-4 rounded-2xl border cursor-pointer transition-all ${
@@ -74,7 +72,6 @@ export default function ProUpgradeModal({ isOpen, onClose, onUpgrade, currentPro
                   <span className="text-[11px] font-bold text-slate-400">100% Ad-Free + 100 Coins</span>
                 </div>
 
-                {/* PRO+ Plan */}
                 <div
                   onClick={() => setSelectedTier('PRO_PLUS')}
                   className={`p-4 rounded-2xl border cursor-pointer transition-all relative ${
@@ -95,7 +92,6 @@ export default function ProUpgradeModal({ isOpen, onClose, onUpgrade, currentPro
                 </div>
               </div>
 
-              {/* Perks List */}
               <div className="bg-[#171722] p-4 rounded-2xl border border-slate-800 space-y-2">
                 <div className="text-xs font-black uppercase text-slate-400 tracking-wider mb-2">
                   Included in {selectedTier === 'PRO_PLUS' ? 'PRO+' : 'PRO'}:
@@ -110,7 +106,6 @@ export default function ProUpgradeModal({ isOpen, onClose, onUpgrade, currentPro
                 ))}
               </div>
 
-              {/* CTA Upgrade Button */}
               <button
                 onClick={handleUpgrade}
                 className="w-full bg-gradient-to-r from-amber-400 via-orange-500 to-pink-500 hover:opacity-95 text-black font-black py-3.5 rounded-2xl text-sm transition-transform hover:scale-[1.01] shadow-2xl shadow-amber-500/20 flex items-center justify-center space-x-2"

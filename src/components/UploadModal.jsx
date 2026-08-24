@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
-import { X, Upload, Image, Link, AlertCircle, Sparkles } from 'lucide-react';
+import { X } from 'lucide-react';
+import { useStore } from '../hooks/useStore';
+import { CATEGORIES } from '../services/mockData';
 
-export default function UploadModal({ isOpen, onClose, onUpload, categories }) {
+export default function UploadModal({ isOpen, onClose }) {
+  const { handlers } = useStore();
   const [title, setTitle] = useState('');
   const [mediaUrl, setMediaUrl] = useState('');
   const [category, setCategory] = useState('memes');
@@ -14,7 +17,7 @@ export default function UploadModal({ isOpen, onClose, onUpload, categories }) {
     e.preventDefault();
     if (!title.trim() || !mediaUrl.trim()) return;
 
-    onUpload({
+    handlers.handleUploadMeme({
       title,
       mediaUrl,
       category,
@@ -25,7 +28,6 @@ export default function UploadModal({ isOpen, onClose, onUpload, categories }) {
     onClose();
   };
 
-  // Quick Preset Sample Images for fast testing
   const SAMPLE_IMAGES = [
     'https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=800&q=80',
@@ -104,7 +106,6 @@ export default function UploadModal({ isOpen, onClose, onUpload, categories }) {
                 src={mediaUrl} 
                 alt="Preview" 
                 className="max-h-48 object-contain"
-                onError={() => console.warn('Invalid image URL')}
               />
             </div>
           )}
@@ -119,7 +120,7 @@ export default function UploadModal({ isOpen, onClose, onUpload, categories }) {
               onChange={(e) => setCategory(e.target.value)}
               className="w-full bg-[#1b1b26] text-slate-100 px-4 py-2.5 rounded-xl border border-slate-800 focus:outline-none focus:border-cyan-500 text-sm capitalize"
             >
-              {categories.filter(c => c.id !== 'hot' && c.id !== 'trending' && c.id !== 'fresh').map(cat => (
+              {CATEGORIES.filter(c => c.id !== 'hot' && c.id !== 'trending' && c.id !== 'fresh').map(cat => (
                 <option key={cat.id} value={cat.id}>
                   {cat.name}
                 </option>

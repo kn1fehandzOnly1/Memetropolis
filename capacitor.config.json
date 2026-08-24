@@ -1,6 +1,6 @@
 {
-  "appId": "com.memetropolis.app",
-  "appName": "Memetropolis",
+  "appId": "com.viraldrop.app",
+  "appName": "ViralDrop",
   "webDir": "dist",
   "server": {
     "androidScheme": "https"
