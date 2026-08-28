@@ -1,171 +1,157 @@
-import { INITIAL_POSTS, CATEGORIES } from './mockData';
+import { db } from './backend/firebase.config';
+import {
+  collection,
+  query,
+  orderBy,
+  onSnapshot,
+  addDoc,
+  updateDoc,
+  doc,
+  serverTimestamp,
+  limit,
+  increment,
+  arrayUnion,
+  arrayRemove,
+  where,
+  getDocs
+} from 'firebase/firestore';
+import { ExternalContentService } from './externalContentService';
 
 class FeedEngine {
   constructor() {
-    this.posts = this.loadPosts();
+    this.postsCollection = collection(db, 'posts');
   }
 
-  loadPosts() {
-    try {
-      const savedPosts = localStorage.getItem('viraldrop_posts');
-      if (!savedPosts) return INITIAL_POSTS;
+  /**
+   * Subscribe to real-time posts
+   */
+  subscribeToFeed(category = 'hot', onUpdate) {
+    let q = query(this.postsCollection, orderBy('createdAt', 'desc'), limit(50));
 
-      const parsed = JSON.parse(savedPosts);
-      // Filter out invalid posts
-      return Array.isArray(parsed) ? parsed : INITIAL_POSTS;
-    } catch (e) {
-      console.error('Failed to load posts from LocalStorage:', e);
-      return INITIAL_POSTS;
+    if (category && category !== 'hot' && category !== 'fresh' && category !== 'trending') {
+      q = query(this.postsCollection, where('category', '==', category.toLowerCase()), orderBy('createdAt', 'desc'), limit(50));
     }
-  }
 
-  saveToStorage() {
-    try {
-      localStorage.setItem('viraldrop_posts', JSON.stringify(this.posts));
-    } catch (e) {
-      console.error('LocalStorage write error:', e);
-    }
-  }
+    return onSnapshot(q, async (snapshot) => {
+      let posts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-  getPosts(category = 'hot', searchQuery = '') {
-    let filtered = [...this.posts];
-
-    // Filter by Category
-    if (category && category !== 'hot') {
+      // Handle "trending" sort client-side for now or via Firestore index later
       if (category === 'trending') {
-        filtered.sort((a, b) => b.upvotes - a.upvotes);
-      } else if (category === 'fresh') {
-        // keep newest first
-      } else {
-        filtered = filtered.filter(p => p.category.toLowerCase() === category.toLowerCase());
+        posts.sort((a, b) => (b.upvotes || 0) - (a.upvotes || 0));
       }
-    }
 
-    // Search Query
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
-      filtered = filtered.filter(p => 
-        p.title.toLowerCase().includes(q) || 
-        p.tags.some(t => t.toLowerCase().includes(q))
-      );
-    }
-
-    return filtered;
-  }
-
-  votePost(postId, direction) {
-    // direction: 1 for upvote, -1 for downvote, 0 to cancel
-    this.posts = this.posts.map(post => {
-      if (post.id === postId) {
-        let currentVote = post.userVote || 0;
-        let up = post.upvotes;
-        let down = post.downvotes;
-
-        if (currentVote === direction) {
-          // Cancel vote
-          if (direction === 1) up--;
-          if (direction === -1) down--;
-          currentVote = 0;
-        } else {
-          // Remove previous vote
-          if (currentVote === 1) up--;
-          if (currentVote === -1) down--;
-
-          // Apply new vote
-          if (direction === 1) up++;
-          if (direction === -1) down++;
-          currentVote = direction;
-        }
-
-        return { ...post, upvotes: up, downvotes: down, userVote: currentVote };
+      // If feed is empty, trigger seeding from external sources
+      if (posts.length === 0) {
+        this.seedInitialContent();
       }
-      return post;
+
+      onUpdate(posts);
     });
-
-    this.saveToStorage();
-    return this.posts;
   }
 
-  addComment(postId, commentText, user) {
-    if (!commentText.trim()) return this.posts;
+  /**
+   * Seed Firestore with external content if empty
+   */
+  async seedInitialContent() {
+    try {
+      const existing = await getDocs(query(this.postsCollection, limit(1)));
+      if (!existing.empty) return;
 
-    const newComment = {
-      id: `c_${Date.now()}`,
+      console.log('Seeding feed with external viral content...');
+      const externalPosts = await ExternalContentService.getViralFeed();
+
+      for (const p of externalPosts) {
+        await addDoc(this.postsCollection, {
+          ...p,
+          createdAt: serverTimestamp(),
+          upvotes: Math.floor(Math.random() * 1000),
+          downvotes: 0,
+          commentCount: 0,
+          awards: []
+        });
+      }
+    } catch (e) {
+      console.error('Seeding failed:', e);
+    }
+  }
+
+  async votePost(postId, userId, direction, currentVote = 0) {
+    const postRef = doc(db, 'posts', postId);
+    const userVoteRef = doc(db, 'users', userId, 'votes', postId); // Optional: track individual votes
+
+    let upIncrement = 0;
+    let downIncrement = 0;
+
+    if (currentVote === direction) {
+      // Cancel vote
+      if (direction === 1) upIncrement = -1;
+      if (direction === -1) downIncrement = -1;
+    } else {
+      // Remove previous
+      if (currentVote === 1) upIncrement--;
+      if (currentVote === -1) downIncrement--;
+      // Add new
+      if (direction === 1) upIncrement++;
+      if (direction === -1) downIncrement++;
+    }
+
+    await updateDoc(postRef, {
+      upvotes: increment(upIncrement),
+      downvotes: increment(downIncrement)
+    });
+  }
+
+  async addComment(postId, commentText, user) {
+    if (!commentText.trim()) return;
+
+    const postRef = doc(db, 'posts', postId);
+    const commentData = {
       author: user.username,
       avatar: user.avatar,
       badge: user.isProPlus ? 'PRO+' : user.isPro ? 'PRO' : null,
       text: commentText,
-      upvotes: 1,
-      createdAt: 'Just now',
-      replies: []
+      upvotes: 0,
+      createdAt: new Date().toISOString() // Or serverTimestamp if moving to subcollection
     };
 
-    this.posts = this.posts.map(post => {
-      if (post.id === postId) {
-        return {
-          ...post,
-          commentCount: post.commentCount + 1,
-          comments: [newComment, ...(post.comments || [])]
-        };
-      }
-      return post;
+    await updateDoc(postRef, {
+      commentCount: increment(1),
+      comments: arrayUnion(commentData) // Simplified for prototype, subcollection better for production
     });
-
-    this.saveToStorage();
-    return this.posts;
   }
 
-  addAwardToPost(postId, award) {
-    this.posts = this.posts.map(post => {
-      if (post.id === postId) {
-        const awards = [...(post.awards || [])];
-        const existingIdx = awards.findIndex(a => a.id === award.id);
-
-        if (existingIdx > -1) {
-          awards[existingIdx] = {
-            ...awards[existingIdx],
-            count: awards[existingIdx].count + 1
-          };
-        } else {
-          awards.push({ id: award.id, count: 1, icon: award.icon });
-        }
-
-        return { ...post, awards };
-      }
-      return post;
-    });
-
-    this.saveToStorage();
-    return this.posts;
-  }
-
-  createPost(newPostData, authorUser) {
-    const newPost = {
-      id: `post_${Date.now()}`,
+  async createPost(newPostData, authorUser) {
+    const postData = {
       title: newPostData.title,
       category: newPostData.category || 'memes',
       type: newPostData.type || 'image',
       mediaUrl: newPostData.mediaUrl,
       aspectRatio: '16/9',
       author: {
+        id: authorUser.id,
         username: authorUser.username,
         avatar: authorUser.avatar,
         badge: authorUser.isProPlus ? 'PRO+' : authorUser.isPro ? 'PRO' : null,
       },
       upvotes: 1,
       downvotes: 0,
-      userVote: 1,
       commentCount: 0,
-      createdAt: 'Just now',
-      tags: newPostData.tags || ['meme', 'fresh'],
+      createdAt: serverTimestamp(),
+      tags: newPostData.tags || ['fresh'],
       isSponsored: false,
       awards: [],
       comments: []
     };
 
-    this.posts = [newPost, ...this.posts];
-    this.saveToStorage();
-    return newPost;
+    return await addDoc(this.postsCollection, postData);
+  }
+
+  async addAwardToPost(postId, award) {
+    const postRef = doc(db, 'posts', postId);
+    // Note: Award logic would be more complex with individual counts in production
+    await updateDoc(postRef, {
+      awards: arrayUnion({ id: award.id, icon: award.icon, count: 1 })
+    });
   }
 }
 

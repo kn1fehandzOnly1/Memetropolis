@@ -186,7 +186,7 @@ export default function MemeCard({ post }) {
       <div className="p-3 bg-[#111116] border-t border-slate-800/60 flex items-center justify-between">
         <div className="flex items-center space-x-1 bg-slate-900/90 rounded-full p-1 border border-slate-800">
           <button
-            onClick={() => handlers.handleVote(post.id, 1)}
+            onClick={() => handlers.handleVote(post.id, 1, post.userVote)}
             className={`flex items-center space-x-1 px-3 py-1.5 rounded-full font-black text-xs transition-all ${
               post.userVote === 1
                 ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20'
@@ -200,7 +200,7 @@ export default function MemeCard({ post }) {
           <div className="w-[1px] h-4 bg-slate-800" />
 
           <button
-            onClick={() => handlers.handleVote(post.id, -1)}
+            onClick={() => handlers.handleVote(post.id, -1, post.userVote)}
             className={`p-1.5 rounded-full font-black text-xs transition-all ${
               post.userVote === -1
                 ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'

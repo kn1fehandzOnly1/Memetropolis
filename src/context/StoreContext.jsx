@@ -1,17 +1,19 @@
 import React, { createContext, useState, useEffect, useCallback } from 'react';
 import { feedEngine } from '../services/feedEngine';
 import { monetizationService } from '../services/monetizationService';
+import { AuthService } from '../services/backend/authService';
 
 export const StoreContext = createContext(null);
 
 export const StoreProvider = ({ children }) => {
-  const [user, setUser] = useState(() => monetizationService.getUser());
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('hot');
   const [searchQuery, setSearchQuery] = useState('');
-  const [posts, setPosts] = useState(() => feedEngine.getPosts(activeCategory, searchQuery));
+  const [posts, setPosts] = useState([]);
 
   // Modals state
-  const [activeModal, setActiveModal] = useState(null); // 'upload', 'coins', 'pro', 'watch-earn', 'profile'
+  const [activeModal, setActiveModal] = useState(null);
   const [tipModalPost, setTipModalPost] = useState(null);
 
   // Toast notifications state
@@ -22,64 +24,104 @@ export const StoreProvider = ({ children }) => {
     setTimeout(() => setToast(''), 3000);
   }, []);
 
-  // Update posts when category or search changes
+  // Sync Auth State & Profile
   useEffect(() => {
-    setPosts(feedEngine.getPosts(activeCategory, searchQuery));
+    const unsubscribe = AuthService.subscribeToAuthState((u) => {
+      setUser(u);
+      setLoading(false);
+    });
+    return () => unsubscribe && typeof unsubscribe === 'function' && unsubscribe();
+  }, []);
+
+  // Subscribe to real-time feed
+  useEffect(() => {
+    const unsubscribe = feedEngine.subscribeToFeed(activeCategory, (updatedPosts) => {
+      let filtered = updatedPosts;
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        filtered = updatedPosts.filter(p =>
+          p.title?.toLowerCase().includes(q) ||
+          p.tags?.some(t => t.toLowerCase().includes(q))
+        );
+      }
+      setPosts(filtered);
+    });
+    return () => unsubscribe && unsubscribe();
   }, [activeCategory, searchQuery]);
 
   // Handlers
-  const handleVote = useCallback((postId, direction) => {
-    feedEngine.votePost(postId, direction);
-    setPosts(feedEngine.getPosts(activeCategory, searchQuery));
-  }, [activeCategory, searchQuery]);
+  const handleLogin = useCallback(async () => {
+    try {
+      await AuthService.signInWithGoogle();
+      showToast('Logged in successfully! 🚀');
+    } catch (e) {
+      showToast('Login failed. Please try again.');
+    }
+  }, [showToast]);
 
-  const handleAddComment = useCallback((postId, commentText) => {
-    feedEngine.addComment(postId, commentText, user);
-    setPosts(feedEngine.getPosts(activeCategory, searchQuery));
+  const handleLogout = useCallback(async () => {
+    try {
+      await AuthService.logout();
+      showToast('Logged out. See you soon!');
+    } catch (e) {
+      showToast('Logout failed.');
+    }
+  }, [showToast]);
+
+  const handleVote = useCallback(async (postId, direction, currentVote) => {
+    if (!user) return showToast('Please log in to vote!');
+    await feedEngine.votePost(postId, user.id, direction, currentVote);
+  }, [user, showToast]);
+
+  const handleAddComment = useCallback(async (postId, commentText) => {
+    if (!user) return showToast('Please log in to comment!');
+    await feedEngine.addComment(postId, commentText, user);
     showToast('Comment posted!');
-  }, [activeCategory, searchQuery, user, showToast]);
+  }, [user, showToast]);
 
-  const handleUploadMeme = useCallback((newPostData) => {
-    feedEngine.createPost(newPostData, user);
-    setPosts(feedEngine.getPosts(activeCategory, searchQuery));
+  const handleUploadMeme = useCallback(async (newPostData) => {
+    if (!user) return showToast('Please log in to post!');
+    await feedEngine.createPost(newPostData, user);
     setActiveModal(null);
     showToast('🚀 Your meme has been published to Fresh!');
-  }, [activeCategory, searchQuery, user, showToast]);
+  }, [user, showToast]);
 
-  const handleToggleSubscribe = useCallback((creatorUsername) => {
-    const subscribedNow = monetizationService.toggleSubscribe(creatorUsername);
-    setUser({ ...monetizationService.getUser() });
+  const handleToggleSubscribe = useCallback(async (creatorUsername) => {
+    if (!user) return showToast('Please log in to subscribe!');
+    const subscribedNow = await monetizationService.toggleSubscribe(user.id, creatorUsername, user.following || []);
     showToast(subscribedNow ? `Subscribed to @${creatorUsername}!` : `Unsubscribed from @${creatorUsername}`);
-  }, [showToast]);
+  }, [user, showToast]);
 
-  const handleBuyCoins = useCallback((amount) => {
-    const updatedUser = monetizationService.addCoins(amount);
-    setUser({ ...updatedUser });
+  const handleBuyCoins = useCallback(async (amount) => {
+    if (!user) return;
+    await monetizationService.addCoins(user.id, amount);
     showToast(`+${amount} Coins added to your account!`);
-  }, [showToast]);
+  }, [user, showToast]);
 
-  const handleRewardEarned = useCallback((coinsReward) => {
-    const updatedUser = monetizationService.addCoins(coinsReward);
-    setUser({ ...updatedUser });
+  const handleRewardEarned = useCallback(async (coinsReward) => {
+    if (!user) return;
+    await monetizationService.addCoins(user.id, coinsReward);
     showToast(`🎉 +${coinsReward} Free Coins Earned from Sponsor Ad!`);
-  }, [showToast]);
+  }, [user, showToast]);
 
-  const handleUpgradePro = useCallback((tier) => {
-    const updatedUser = monetizationService.upgradePro(tier);
-    setUser({ ...updatedUser });
+  const handleUpgradePro = useCallback(async (tier) => {
+    if (!user) return;
+    await monetizationService.upgradePro(user.id, tier);
     showToast(`Welcome to VIRALDROP ${tier === 'PRO_PLUS' ? 'PRO+' : 'PRO'}! Ads removed.`);
-  }, [showToast]);
+  }, [user, showToast]);
 
-  const handleSendAward = useCallback((postId, award) => {
-    const ok = monetizationService.spendCoins(award.cost);
-    if (!ok) return false;
+  const handleSendAward = useCallback(async (postId, award) => {
+    if (!user) return false;
+    const ok = await monetizationService.spendCoins(user.id, award.cost, user.coins);
+    if (!ok) {
+      showToast('Insufficient coins! 🪙');
+      return false;
+    }
 
-    setUser({ ...monetizationService.getUser() });
-    feedEngine.addAwardToPost(postId, award);
-    setPosts(feedEngine.getPosts(activeCategory, searchQuery));
+    await feedEngine.addAwardToPost(postId, award);
     showToast(`Awarded ${award.icon} ${award.name}!`);
     return true;
-  }, [activeCategory, searchQuery, showToast]);
+  }, [user, showToast]);
 
   const value = {
     user,
@@ -95,6 +137,8 @@ export const StoreProvider = ({ children }) => {
     toast,
     showToast,
     handlers: {
+      handleLogin,
+      handleLogout,
       handleVote,
       handleAddComment,
       handleUploadMeme,
@@ -104,7 +148,8 @@ export const StoreProvider = ({ children }) => {
       handleUpgradePro,
       handleSendAward
     },
-    shouldShowAds: monetizationService.shouldShowAds()
+    loading,
+    shouldShowAds: user ? !(user.isPro || user.isProPlus) : true
   };
 
   return (

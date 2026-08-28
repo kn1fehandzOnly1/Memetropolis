@@ -1,4 +1,4 @@
-// High quality mock dataset for Memetropolis
+// High quality mock dataset for ViralDrop
 
 export const CATEGORIES = [
   { id: 'hot', name: 'Hot', icon: 'Flame', color: 'text-amber-500' },
@@ -16,7 +16,7 @@ export const SUBSCRIBER_MILESTONES = [
   { count: 10, rewardCoins: 100, title: 'Rising Meme Creator', badge: '🌱 Rising' },
   { count: 50, rewardCoins: 500, title: 'Famous Memer', badge: '🔥 Famous' },
   { count: 100, rewardCoins: 2000, title: 'Meme Legend', badge: '👑 Legend' },
-  { count: 500, rewardCoins: 10000, title: 'Memetropolis Superstar', badge: '🌟 Superstar' },
+  { count: 500, rewardCoins: 10000, title: 'ViralDrop Superstar', badge: '🌟 Superstar' },
 ];
 
 export const INITIAL_USER = {

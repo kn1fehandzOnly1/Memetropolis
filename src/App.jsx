@@ -35,8 +35,20 @@ function AppContent() {
     setTipModalPost,
     toast,
     shouldShowAds,
-    handlers
+    handlers,
+    loading
   } = useStore();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0b0b0e] flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-cyan-400 font-black tracking-widest uppercase text-xs">Loading ViralDrop...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0b0b0e] text-slate-100 flex flex-col font-sans">

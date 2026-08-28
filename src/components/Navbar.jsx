@@ -19,10 +19,35 @@ export default function Navbar() {
     searchQuery,
     setSearchQuery,
     activeCategory,
-    setActiveCategory
+    setActiveCategory,
+    handlers
   } = useStore();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  if (!user) {
+    return (
+      <header className="sticky top-0 z-40 w-full glass-nav px-4 py-2.5 flex items-center justify-between transition-all">
+        <div className="flex items-center space-x-3">
+          <a href="/" className="flex items-center space-x-2.5 group">
+            <div className="w-10 h-10 bg-gradient-to-tr from-cyan-600 via-blue-600 to-indigo-700 border-2 border-cyan-400 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/20 group-hover:scale-105 transition-transform">
+              <span className="font-black text-2xl text-white tracking-tighter">V</span>
+            </div>
+            <span className="font-black text-xl tracking-wider text-white hidden sm:inline font-outfit uppercase">
+              VIRALDROP
+            </span>
+          </a>
+        </div>
+
+        <button
+          onClick={handlers.handleLogin}
+          className="bg-cyan-500 hover:bg-cyan-400 text-black font-extrabold px-6 py-2 rounded-full text-sm transition-all shadow-md shadow-cyan-500/20 hover:scale-105"
+        >
+          LOG IN WITH GOOGLE
+        </button>
+      </header>
+    );
+  }
 
   return (
     <header className="sticky top-0 z-40 w-full glass-nav px-4 py-2.5 flex items-center justify-between transition-all">

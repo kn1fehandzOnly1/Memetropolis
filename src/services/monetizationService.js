@@ -1,4 +1,6 @@
-import { INITIAL_USER, AWARDS_LIST, SUBSCRIBER_MILESTONES } from './mockData';
+import { db } from './backend/firebase.config';
+import { doc, updateDoc, increment, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { SUBSCRIBER_MILESTONES } from './mockData';
 
 export const COIN_PACKS = [
   { id: 'coins_100', coins: 100, price: '$0.99', popular: false, badge: '' },
@@ -39,98 +41,51 @@ export const PRO_TIERS = {
 };
 
 class MonetizationService {
-  constructor() {
-    this.user = this.loadUser();
-  }
-
-  loadUser() {
-    try {
-      const savedUser = localStorage.getItem('viraldrop_user');
-      if (!savedUser) return INITIAL_USER;
-
-      const parsed = JSON.parse(savedUser);
-      // Basic migration/validation: Ensure required fields exist
-      return {
-        ...INITIAL_USER,
-        ...parsed,
-        // Preserve coins and subscription status
-        coins: typeof parsed.coins === 'number' ? parsed.coins : INITIAL_USER.coins,
-        isPro: !!parsed.isPro,
-        isProPlus: !!parsed.isProPlus
-      };
-    } catch (e) {
-      console.error('Failed to load user from LocalStorage:', e);
-      return INITIAL_USER;
-    }
-  }
-
-  saveUser() {
-    try {
-      localStorage.setItem('viraldrop_user', JSON.stringify(this.user));
-    } catch (e) {
-      console.error('LocalStorage write error:', e);
-    }
-  }
-
-  getUser() {
-    return this.user;
-  }
-
-  toggleSubscribe(creatorUsername) {
-    const following = [...(this.user.following || [])];
-    const isSubscribed = following.includes(creatorUsername);
+  async toggleSubscribe(userId, creatorUsername, currentFollowing = []) {
+    const userRef = doc(db, 'users', userId);
+    const isSubscribed = currentFollowing.includes(creatorUsername);
 
     if (isSubscribed) {
-      this.user.following = following.filter(u => u !== creatorUsername);
+      await updateDoc(userRef, {
+        following: arrayRemove(creatorUsername)
+      });
     } else {
-      this.user.following = [...following, creatorUsername];
+      await updateDoc(userRef, {
+        following: arrayUnion(creatorUsername)
+      });
     }
-
-    this.saveUser();
     return !isSubscribed;
   }
 
-  isSubscribed(creatorUsername) {
-    return (this.user.following || []).includes(creatorUsername);
+  async addCoins(userId, amount) {
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, {
+      coins: increment(amount)
+    });
   }
 
-  addCoins(amount) {
-    this.user.coins = (this.user.coins || 0) + amount;
-    this.saveUser();
-    return this.user;
-  }
+  async spendCoins(userId, amount, currentCoins) {
+    if (currentCoins < amount) return false;
 
-  spendCoins(amount) {
-    if (this.user.coins < amount) {
-      return false; // Insufficient funds
-    }
-    this.user.coins -= amount;
-    this.saveUser();
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, {
+      coins: increment(-amount)
+    });
     return true;
   }
 
-  upgradePro(tier = 'PRO') {
-    if (tier === 'PRO_PLUS') {
-      this.user.isPro = true;
-      this.user.isProPlus = true;
-      this.addCoins(300);
-    } else {
-      this.user.isPro = true;
-      this.user.isProPlus = false;
-      this.addCoins(100);
-    }
-    this.saveUser();
-    return this.user;
+  async upgradePro(userId, tier = 'PRO') {
+    const userRef = doc(db, 'users', userId);
+    const updates = {
+      isPro: true,
+      isProPlus: tier === 'PRO_PLUS',
+      coins: increment(tier === 'PRO_PLUS' ? 300 : 100)
+    };
+    await updateDoc(userRef, updates);
   }
 
-  shouldShowAds() {
-    // Hide ads if user has PRO or PRO+
-    return !(this.user.isPro || this.user.isProPlus);
-  }
-
-  getNextMilestone() {
-    const subs = this.user.subscribers || 0;
-    return SUBSCRIBER_MILESTONES.find(m => m.count > subs) || SUBSCRIBER_MILESTONES[SUBSCRIBER_MILESTONES.length - 1];
+  getNextMilestone(subscribers = 0) {
+    return SUBSCRIBER_MILESTONES.find(m => m.count > subscribers) || SUBSCRIBER_MILESTONES[SUBSCRIBER_MILESTONES.length - 1];
   }
 }
 

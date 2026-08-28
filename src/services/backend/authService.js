@@ -31,7 +31,7 @@ export class AuthService {
               username: firebaseUser.displayName || `User_${firebaseUser.uid.substring(0, 5)}`,
               email: firebaseUser.email || '',
               avatar: firebaseUser.photoURL || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
-              bio: 'Memetropolis creator',
+              bio: 'ViralDrop creator',
               coins: 250,
               subscribers: 0,
               following: [],
