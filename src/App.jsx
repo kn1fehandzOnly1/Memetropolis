@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import MemeCard from './components/MemeCard';
@@ -38,6 +38,37 @@ function AppContent() {
     handlers,
     loading
   } = useStore();
+
+  // Native Android Hardware Back Button Handling
+  useEffect(() => {
+    const handleBackButton = () => {
+      if (activeModal || tipModalPost) {
+        setActiveModal(null);
+        setTipModalPost(null);
+      } else if (activeCategory !== 'hot') {
+        setActiveCategory('hot');
+      } else {
+        if (window.Capacitor?.Plugins?.App) {
+          window.Capacitor.Plugins.App.exitApp();
+        }
+      }
+    };
+
+    let handler;
+    if (window.Capacitor?.Plugins?.App) {
+      handler = window.Capacitor.Plugins.App.addListener('backButton', handleBackButton);
+    } else {
+      document.addEventListener('backbutton', handleBackButton);
+    }
+
+    return () => {
+      if (handler && typeof handler.remove === 'function') {
+        handler.remove();
+      } else {
+        document.removeEventListener('backbutton', handleBackButton);
+      }
+    };
+  }, [activeModal, tipModalPost, activeCategory, setActiveModal, setTipModalPost, setActiveCategory]);
 
   if (loading) {
     return (
